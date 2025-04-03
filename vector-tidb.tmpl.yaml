@@ -20,6 +20,15 @@ persistence:
 serviceAccount:
   annotations:
     eks.amazonaws.com/role-arn: ${ROLE_ARN}
+tolerations:
+  - effect: NoSchedule
+    key: dedicated
+    operator: Equal
+    value: o11y
+  - effect: NoSchedule
+    key: use-for
+    operator: Equal
+    value: byoc-m1
 containerPorts:
   - name: prom-exporter
     containerPort: 9599

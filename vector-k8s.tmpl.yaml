@@ -255,8 +255,8 @@ customConfig:
       type: aws_s3
       inputs:
         - enrich_infra_log_message
-      region: us-west-2
-      bucket: o11y-dev-shared-us-west-2
+      region: ${REGION}
+      bucket: o11y-dev-shared-${REGION}
       key_prefix: |-
         1/${TENANT_ID}/${PROJECT_ID}/k8s-infra/logs/{{ `{{ o11y.component }}` }}/
       compression: gzip
@@ -274,8 +274,8 @@ customConfig:
       type: aws_s3
       inputs:
         - enrich_tidb_cluster_log_message
-      region: us-west-2
-      bucket: o11y-dev-shared-us-west-2
+      region: ${REGION}
+      bucket: o11y-dev-shared-${REGION}
       key_prefix: |-
         0/${TENANT_ID}/${PROJECT_ID}/${CLUSTER_ID}/logs/{{ `{{ o11y.component }}` }}/
       compression: gzip
@@ -297,8 +297,8 @@ customConfig:
         - ensure_cluster_id.dropped
         - enrich_tidb_cluster_log_message.dropped
         - enrich_infra_log_message.dropped
-      region: us-west-2
-      bucket: o11y-dev-shared-us-west-2
+      region: ${REGION}
+      bucket: o11y-dev-shared-${REGION}
       key_prefix: |-
         1/${TENANT_ID}/${PROJECT_ID}/k8s-infra/logs/_unmatched/
       compression: gzip
@@ -316,8 +316,8 @@ customConfig:
       type: aws_s3
       inputs:
         - journald
-      region: us-west-2
-      bucket: o11y-dev-shared-us-west-2
+      region: ${REGION}
+      bucket: o11y-dev-shared-${REGION}
       key_prefix: |-
         1/${TENANT_ID}/${PROJECT_ID}/k8s-infra/logs/journald/{{ `{{ host }}` }}/
       compression: gzip
@@ -389,16 +389,16 @@ customConfig:
       type: aws_s3_upload_file
       inputs:
         - oom_file_key_transform
-      region: us-west-2
-      bucket: o11y-dev-shared-us-west-2
+      region: ${REGION}
+      bucket: o11y-dev-shared-${REGION}
       auth:
         assume_role: ${O11Y_ROLE_ARN}
     s3_upload_replayer_file:
       type: aws_s3_upload_file
       inputs:
         - replayer_file_key_transform
-      region: us-west-2
-      bucket: o11y-dev-shared-us-west-2
+      region: ${REGION}
+      bucket: o11y-dev-shared-${REGION}
       auth:
         assume_role: ${O11Y_ROLE_ARN}
     self_logs_sink:

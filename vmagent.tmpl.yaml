@@ -18,6 +18,10 @@ spec:
       key: dedicated
       operator: Equal
       value: o11y
+    - effect: NoSchedule
+      key: use-for
+      operator: Equal
+      value: byoc-m1
   resources:
     requests:
       memory: "512Mi"
