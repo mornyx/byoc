@@ -1,0 +1,111 @@
+role: "Stateless-Aggregator"
+image:
+  repository: gcr.io/pingcap-public/dbaas/vector
+  pullPolicy: IfNotPresent
+  tag: 0.37.1-76b50d-debian
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+persistence:
+  enabled: true
+  storageClass: "gp2"
+  accessModes:
+    - ReadWriteOnce
+  size: 10Gi
+  volumeMode: "Filesystem"
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: ${ROLE_ARN}
+containerPorts:
+  - name: prom-exporter
+    containerPort: 9599
+    protocol: TCP
+customConfig:
+  data_dir: /vector-data-dir
+  api:
+    enabled: false
+  sources:
+    topsql:
+      type: "topsql"
+      pd_address: "${TIDB_NAME}-pd:2379"
+      top_n: 10
+    conprof:
+      type: "conprof"
+      pd_address: "${TIDB_NAME}-pd:2379"
+      enable_tikv_heap_profile: false
+    keyviz:
+      type: "keyviz"
+      pd_address: "${TIDB_NAME}-pd:2379"
+    self_metrics:
+      type: "internal_metrics"
+  transforms:
+    topsql_add_meta:
+      type: "remap"
+      inputs: ["topsql"]
+      source: |
+        .labels.tenant_id = "${TENANT_ID}"
+        .labels.project_id = "${PROJECT_ID}"
+        .labels.cluster_id = "${CLUSTER_ID}"
+    conprof_add_meta:
+      type: "remap"
+      inputs: ["conprof"]
+      source: |
+        .key_prefix = join!(["0", "${TENANT_ID}", "${PROJECT_ID}", "${CLUSTER_ID}", "profiles", .filename], separator: "/")
+    keyviz_add_meta:
+      type: "remap"
+      inputs: ["keyviz"]
+      source: |
+        .key_prefix = join!(["0", "${TENANT_ID}", "${PROJECT_ID}", "${CLUSTER_ID}", "regions", .filename], separator: "/")
+  sinks:
+    topsql_vm:
+      type: "vm_import"
+      inputs: ["topsql_add_meta"]
+      endpoint: "http://${PRIVATE_LINK_DNS_NAME}/${O11Y_CLUSTER_ID}/api/v1/import"
+      batch:
+        max_events: 1000
+        max_bytes: 1048576  # 1MiB
+        timeout_secs: 1
+      buffer:
+        type: "disk"
+        max_size: 536870912  # 512MiB
+        when_full: "drop_newest"
+    conprof_s3:
+      type: "aws_s3"
+      inputs: ["conprof_add_meta"]
+      encoding:
+        codec: "raw_message"
+      region: "${REGION}"
+      bucket: "o11y-dev-shared-${REGION}"
+      key_prefix: "{{ `{{ key_prefix }}` }}"
+      filename_time_format: ""
+      filename_append_uuid: false
+      batch:
+        max_bytes: 1  # DO NOT BATCH
+        max_events: 1
+        timeout_secs: 1
+      auth:
+        assume_role: ${O11Y_ROLE_ARN}
+    keyviz_s3:
+      type: "aws_s3"
+      inputs: ["keyviz_add_meta"]
+      encoding:
+        codec: "raw_message"
+      region: "${REGION}"
+      bucket: "o11y-dev-shared-${REGION}"
+      key_prefix: "{{ `{{ key_prefix }}` }}"
+      filename_time_format: ""
+      filename_append_uuid: false
+      batch:
+        max_bytes: 1  # DO NOT BATCH
+        max_events: 1
+        timeout_secs: 1
+      auth:
+        assume_role: ${O11Y_ROLE_ARN}
+    self_metrics_sink:
+      type: "prometheus_exporter"
+      inputs: ["self_metrics"]
+      address: "0.0.0.0:9599"

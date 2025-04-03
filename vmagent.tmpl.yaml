@@ -1,0 +1,29 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAgent
+metadata:
+  name: vmagent
+  namespace: ${NAMESPACE}
+spec:
+  replicaCount: 1
+  image:
+    repository: victoriametrics/vmagent
+    tag: v1.102.1
+    pullPolicy: IfNotPresent
+  remoteWrite:
+    - url: http://${PRIVATE_LINK_DNS_NAME}/${O11Y_CLUSTER_ID}/api/v1/write
+  nodeSelector:
+    dedicated: o11y
+  tolerations:
+    - effect: NoSchedule
+      key: dedicated
+      operator: Equal
+      value: o11y
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1024Mi"
+      cpu: "500m"
+  podScrapeNamespaceSelector: {}
+  podScrapeSelector: {}
